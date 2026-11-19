@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -122,6 +123,8 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cartoApiKey = dotenv.get('cartoApiKey');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('OpenStreetMap Search'),
@@ -140,11 +143,12 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
               children: [
                 TileLayer(
                   urlTemplate:
-                      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=$cartoApiKey",
                   subdomains: const ['a', 'b', 'c', 'd'],
-                  // attributionBuilder: (_) {
-                  //   return Text("© OpenStreetMap contributors | © Carto");
-                  // },
+                  userAgentPackageName: 'net.eddbali.cours_osm.map_adresse',
+                  //attributionBuilder: (_) {
+                  //  return Text("© OpenStreetMap contributors | © Carto");
+                  //},
                 ),
                 MarkerLayer(
                   markers: [

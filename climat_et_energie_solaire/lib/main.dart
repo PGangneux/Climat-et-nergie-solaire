@@ -1,9 +1,13 @@
 import 'package:climat_et_energie_solaire/barre_recherche.dart';
 import 'package:climat_et_energie_solaire/climat.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:material_ui/material_ui.dart';
 
 
-void main() => runApp(const ClimatApp());
+Future<void> main() async {
+  await dotenv.load();
+  runApp(const ClimatApp());
+}
 
 class ClimatApp extends StatelessWidget {
   const ClimatApp({super.key});
