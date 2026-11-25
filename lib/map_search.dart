@@ -29,7 +29,6 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
     _searchCity();
   }
 
@@ -98,6 +97,11 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
     try {
       final query = widget.localisation.trim();
 
+      if (query.isEmpty) {
+        await _getCurrentLocation();
+        return;
+      }
+      
       List<double> location = await _getCoordinates(query);
 
       if (!mounted) return;
