@@ -43,6 +43,7 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,7 +57,7 @@ class _AppShellState extends State<AppShell> {
               rechercher("");
             },
             child: const Text("Ma position")
-          ),
+          ), // btn "ma position"
           BarreRecherche(
             onSearch: rechercher
           ),
