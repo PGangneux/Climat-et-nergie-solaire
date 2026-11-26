@@ -52,12 +52,6 @@ class _AppShellState extends State<AppShell> {
       ),
       body: Column(
         children: [
-          ElevatedButton(
-            onPressed: () {
-              rechercher("");
-            },
-            child: const Text("Ma position")
-          ), // btn "ma position"
           BarreRecherche(
             onSearch: rechercher
           ),

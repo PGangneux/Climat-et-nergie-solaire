@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
@@ -26,60 +25,26 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   String _latitude = '48.8566';
   String _longitude = '2.3522';
 
-  @override
-  void initState() {
-    super.initState();
-    _searchCity();
-  }
-
-  // Obtenir la position actuelle de l'utilisateur
-  Future<void> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activer le service de localisation')),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permission de localisation refusée')),
-          );
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission de localisation bloquée')),
-        );
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _center = LatLng(position.latitude, position.longitude);
-        _latitude = position.latitude.toString();
-        _longitude = position.longitude.toString();
-      });
-      _mapController.move(_center, 12.0); // Centrer la carte
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Erreur lors de l\'obtention de la localisation')),
-      );
-    }
-  }
-
+  // Récupérer les coordonnées d'une ville (un couple [lat, long])
   // Récupérer les coordonnées d'une ville (un couple [lat, long])
   Future<List<double>> _getCoordinates(String city) async {
-    final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=$city&format=json&limit=1');
+    // Cas "latitude, longitude" on utilise pas nominatum
+    final morceaux = city.split(',');
+    if (morceaux.length == 2) {
+      final lat = double.tryParse(morceaux[0].trim());
+      final lon = double.tryParse(morceaux[1].trim());
+      if (lat != null && lon != null) {
+        return [lat, lon];
+      }
+    }
+
+    // Cas nom de ville 
+    // Uri.https encode les espaces, les &, etc.
+    final url = Uri.https('nominatim.openstreetmap.org', '/search', {
+      'q': city,
+      'format': 'json',
+      'limit': '1',
+    });
     final response = await http.get(url, headers: {'User-Agent': 'FlutterApp'});
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -93,12 +58,12 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   }
 
   // Rechercher une ville et centrer la carte
+  // todo serach location non city ...
   Future<void> _searchCity() async {
     try {
       final query = widget.localisation.trim();
 
       if (query.isEmpty) {
-        await _getCurrentLocation();
         return;
       }
       
@@ -124,6 +89,26 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
       );
     }
   }
+
+  @override
+  void initState() {
+    super.initState();
+    // Attendre que la carte soit affichée avant de la déplacer
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchCity();
+    });
+  }
+
+  @override
+  //sert si l'écran parent garde la carte affichée et change localisation. 
+  // Sans cette méthode, la carte ne lancerait pas la nouvelle recherche.
+  void didUpdateWidget(covariant MapSearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.localisation != widget.localisation) {
+      _searchCity();
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {

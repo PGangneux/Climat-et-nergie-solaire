@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 class BarreRecherche extends StatefulWidget {
   final Function(String) onSearch;
@@ -20,13 +21,63 @@ class _BarreRechercheState extends State<BarreRecherche> {
   final TextEditingController textController = TextEditingController();
   Set<String> favoris = {};
   bool chargement = true;
+  bool localisationEnCours = false;
 
+  void _afficherMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   void submitSearch() {
     final query = textController.text.trim();
 
     if (query.isNotEmpty) {
       widget.onSearch(query);
+    }
+  }
+
+  Future<void> _utiliserMaPosition() async {
+    setState(() => localisationEnCours = true);
+
+    try {
+      final serviceActif = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
+      if (!serviceActif) {
+        _afficherMessage('Activer le service de localisation');
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (!mounted) return;
+
+      if (permission == LocationPermission.denied) {
+        _afficherMessage('Permission de localisation refusée');
+        return;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        _afficherMessage('Permission de localisation bloquée');
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+
+      textController.text =
+          '${position.latitude.toStringAsFixed(5)}, '
+          '${position.longitude.toStringAsFixed(5)}';
+      submitSearch();
+    } catch (e) {
+      if (mounted) {
+        _afficherMessage("Erreur lors de l'obtention de la localisation");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => localisationEnCours = false);
+      }
     }
   }
 
@@ -84,6 +135,15 @@ class _BarreRechercheState extends State<BarreRecherche> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        ElevatedButton(
+          onPressed: localisationEnCours ? null : _utiliserMaPosition,
+          child: Text(
+            localisationEnCours ? "Localisation..." : "Ma position",
+          ),
+        ), // btn "ma position"
+
+
+
         TextField(
           controller: textController,
           onSubmitted: (_) => submitSearch(),
